@@ -2,430 +2,192 @@
 
 ## Purpose
 
-This document defines the commands used across the HelixOps platform.
+Defines all Commands accepted by HelixOps.
 
-Commands represent intentions to perform actions within the system.
+Commands represent requests to perform an action.
 
-Unlike events, commands do not describe facts that already occurred. They express requests for behavior that may succeed or fail.
+Commands are mutable requests.
 
----
-
-# Command Principles
-
-## Commands Express Intent
-
-Commands request that something should happen.
-
-Examples:
-
-- RegisterDevice
-- SendHeartbeat
-- EvaluateDeviceHealth
-- GenerateAlert
+Commands may succeed or fail.
 
 ---
 
-## Commands Target One Capability
+# Asset Management Commands
 
-A command must have a single clear responsibility.
+## CreateLocation
 
-Bad:
-
-```text
-RegisterDeviceAndAssignDeployment
-```
-
-Good:
-
-```text
-RegisterDevice
-AssignDeployment
-```
+Create a new Location.
 
 ---
 
-## Commands Are Imperative
+## CloseLocation
 
-Commands use verbs.
-
-Examples:
-
-```text
-RegisterDevice
-ActivateLocation
-GenerateAlert
-StartDeployment
-```
+Close an existing Location.
 
 ---
 
-## Commands May Fail
+## RegisterDevice
 
-A command can be rejected.
-
-Examples:
-
-- RegisterDevice rejected because Location does not exist.
-- StartDeployment rejected because Device is Offline.
+Register a Device.
 
 ---
 
-# Command Categories
+## RetireDevice
 
-HelixOps classifies commands into:
-
-```text
-Asset Commands
-Monitoring Commands
-Automation Commands
-Deployment Commands
-Alert Commands
-Identity Commands
-System Commands
-```
+Retire a Device.
 
 ---
 
-# Asset Commands
+## RegisterAgent
 
-Commands related to devices and locations.
-
-## Device Commands
-
-```text
-RegisterDevice
-ActivateDevice
-DeactivateDevice
-MarkDeviceOffline
-DecommissionDevice
-
-SendHeartbeat
-
-ReportDeviceVersion
-```
+Register a ManagementAgent.
 
 ---
 
-## Location Commands
+## RetireAgent
 
-```text
-CreateLocation
-ActivateLocation
-CloseLocation
+Retire a ManagementAgent.
 
-CalculateLocationHealth
-```
+---
+
+## ReportAgentVersion
+
+Report the currently installed version.
+
+---
+
+## SendAgentHeartbeat
+
+Send operational heartbeat information.
 
 ---
 
 # Monitoring Commands
 
-Commands related to telemetry and health evaluation.
+## EvaluateAgentHealth
 
-```text
-RecordMetric
+Calculate ManagementAgent health.
 
-EvaluateHealth
+Input:
 
-CalculateDeviceHealth
+- LastHeartbeatAt
+- HeartbeatInterval
+- ConnectivityData
 
-CalculateLocationHealth
+Output:
 
-CalculateServiceHealth
-```
+- Healthy
+- Degraded
+- Offline
 
 ---
 
 # Automation Commands
 
-Commands executed by the Automation & Rules Engine.
+## EvaluateRule
 
-```text
-EvaluateRule
-
-StartAutomation
-
-CompleteAutomation
-
-FailAutomation
-```
+Evaluate an automation rule.
 
 ---
 
-## Automated Actions
+## ExecuteAutomation
 
-```text
-RequestAlert
-
-RequestDeployment
-
-RequestRollback
-
-RequestDeviceMaintenance
-```
+Execute an automation workflow.
 
 ---
 
-# Deployment Commands
+# Alerting Commands
 
-Commands related to software distribution.
+## GenerateAlert
 
-```text
-StartDeployment
-
-AssignDeployment
-
-CompleteDeployment
-
-FailDeployment
-
-StartRollback
-
-CompleteRollback
-```
+Generate a new operational alert.
 
 ---
 
-# Alert Commands
+## AcknowledgeAlert
 
-Commands related to incident management.
-
-```text
-GenerateAlert
-
-AcknowledgeAlert
-
-ResolveAlert
-
-SendNotification
-```
+Acknowledge an alert.
 
 ---
 
-# Identity Commands
+## ResolveAlert
 
-Commands related to access management.
-
-```text
-CreateUser
-
-ActivateUser
-
-AssignRole
-
-GrantPermission
-```
+Resolve an alert.
 
 ---
 
-# System Commands
+# Deployment Management Commands
 
-Internal platform commands.
+## AssignDeployment
 
-```text
-StoreEvent
-
-PublishEvent
-
-ReplayEvent
-
-CreateSubscription
-```
+Assign a deployment to a ManagementAgent.
 
 ---
 
-# Command Ownership
+## StartAgentUpdate
 
-| Command Category    | Owning Context            |
-| ------------------- | ------------------------- |
-| Asset Commands      | Asset Management          |
-| Monitoring Commands | Monitoring                |
-| Automation Commands | Automation & Rules Engine |
-| Deployment Commands | Deployment Management     |
-| Alert Commands      | Alerting                  |
-| Identity Commands   | Identity & Access         |
-| System Commands     | Event Platform            |
+Start software update execution.
 
 ---
 
-# Command → Event Mapping
+## CompleteAgentUpdate
 
-## Device Registration
-
-```text
-RegisterDevice
-↓
-DeviceRegistered
-```
+Complete an update successfully.
 
 ---
 
-## Heartbeat Processing
+## FailAgentUpdate
 
-```text
-SendHeartbeat
-↓
-HeartbeatReceived
-```
+Register deployment failure.
 
 ---
 
-## Device Health Evaluation
+## ExecuteRollback
 
-```text
-CalculateDeviceHealth
-↓
-DeviceHealthCalculated
-```
+Execute rollback procedure.
 
 ---
 
-## Rule Evaluation
+# Command Naming Rules
 
-```text
-EvaluateRule
-↓
-RuleTriggered
-```
+Commands must:
 
----
+- Start with a verb
+- Express intent
+- Be written in imperative form
 
-## Alert Generation
-
-```text
-RequestAlert
-↓
-AlertRequested
-
-GenerateAlert
-↓
-AlertGenerated
-```
-
----
-
-## Deployment Flow
-
-```text
-StartDeployment
-↓
-DeploymentStarted
-
-CompleteDeployment
-↓
-DeploymentSucceeded
-
-FailDeployment
-↓
-DeploymentFailed
-```
-
----
-
-## Rollback Flow
-
-```text
-StartRollback
-↓
-RollbackStarted
-
-CompleteRollback
-↓
-RollbackCompleted
-```
-
----
-
-# Core Operational Flow
-
-The primary HelixOps workflow.
-
-```text
-SendHeartbeat
-↓
-HeartbeatReceived
-
-CalculateDeviceHealth
-↓
-DeviceHealthCalculated
-
-EvaluateRule
-↓
-RuleTriggered
-
-RequestAlert
-↓
-AlertRequested
-
-GenerateAlert
-↓
-AlertGenerated
-```
-
----
-
-# Command Design Guidelines
-
-## Commands Should Be Explicit
-
-Bad:
-
-```text
-ProcessDevice
-```
+Examples:
 
 Good:
 
-```text
-RegisterDevice
-MarkDeviceOffline
-SendHeartbeat
-```
+CreateLocation
 
----
+RegisterAgent
 
-## Commands Should Not Leak Infrastructure
+SendAgentHeartbeat
+
+StartAgentUpdate
 
 Bad:
 
-```text
-PublishRabbitMessage
-```
+LocationCreated
 
-Good:
+AgentHeartbeatReceived
 
-```text
-PublishEvent
-```
+AgentUpdated
 
 ---
 
-## Commands Should Reflect Domain Language
+# Command Metadata
 
-Bad:
+Every command should contain:
 
-```text
-InsertDeviceRecord
-```
+CommandId
 
-Good:
+CorrelationId
 
-```text
-RegisterDevice
-```
+RequestedBy
 
----
+RequestedAt
 
-# Future Commands
-
-Reserved for future platform capabilities.
-
-```text
-PredictFailure
-
-RecommendDeployment
-
-AutoScaleWorkers
-
-GenerateOperationalInsight
-```
+TargetAggregateId

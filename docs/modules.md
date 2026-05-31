@@ -1,580 +1,316 @@
-# HelixOps - Modules v2
+# HelixOps - Modules
 
 ## Purpose
 
-This document defines the bounded contexts and functional domains that compose the HelixOps platform.
+Defines the bounded contexts that compose the HelixOps platform and their responsibilities.
 
-HelixOps is an Event-Driven Operations Platform designed to observe, automate and operate distributed systems.
-
-The platform follows an Event-First architecture where all operational activities are represented as events and processed through a centralized event platform.
+The platform follows a Modular Monolith architecture with Event-Driven communication between modules.
 
 ---
 
-# Domain Classification
+# Architectural Principles
 
-| Domain Type        | Context                   |
-| ------------------ | ------------------------- |
-| Core Domain        | Event Platform            |
-| Core Domain        | Automation & Rules Engine |
-| Operational Domain | Asset Management          |
-| Supporting Domain  | Monitoring                |
-| Supporting Domain  | Alerting                  |
-| Supporting Domain  | Deployment Management     |
-| Generic Domain     | Identity & Access         |
+Modules communicate through:
+
+- Commands
+- Domain Events
+- Policies
+
+Modules must never communicate through direct database access.
+
+Modules must own their data and business rules.
 
 ---
 
-# Context Map
+# Module Overview
 
 ```mermaid
-flowchart TB
+flowchart LR
 
-subgraph Core Domains
-    EventPlatform
-    AutomationRules
-end
+AM[Asset Management]
 
-subgraph Operational Domain
-    AssetManagement
-end
+MON[Monitoring]
 
-subgraph Supporting Domains
-    Monitoring
-    Alerting
-    DeploymentManagement
-end
+AUTO[Automation]
 
-subgraph Generic Domain
-    IdentityAccess
-end
+ALERT[Alerting]
 
-AssetManagement --> EventPlatform
+DEP[Deployment Management]
 
-DeploymentManagement --> EventPlatform
+IAM[Identity & Access]
 
-EventPlatform --> Monitoring
+EVENTS[Event Platform]
 
-Monitoring --> AutomationRules
+AM --> EVENTS
 
-AutomationRules --> Alerting
+EVENTS --> MON
 
-AutomationRules --> DeploymentManagement
+EVENTS --> AUTO
 
-AutomationRules --> AssetManagement
+EVENTS --> ALERT
 
-IdentityAccess --> AssetManagement
-IdentityAccess --> DeploymentManagement
-IdentityAccess --> Alerting
+EVENTS --> DEP
 ```
 
 ---
 
-# 1. Event Platform
+# Asset Management
 
-## Description
+## Purpose
 
-The Event Platform is the central nervous system of HelixOps.
+Manage operational assets participating in HelixOps workflows.
 
-Every significant operational action is represented as an event and flows through this domain.
+Asset Management is responsible for inventory and lifecycle management.
 
-The Event Platform is responsible for publishing, routing, auditing and replaying events across the platform.
+---
+
+## Owned Aggregates
+
+### Location
+
+Represents a physical operational site.
+
+Examples:
+
+- Retail Store
+- Warehouse
+- Airport
+- Restaurant
+
+---
+
+### Device
+
+Represents a physical or logical operational asset.
+
+Examples:
+
+- POS Terminal
+- Kiosk
+- Receipt Printer
+- Barcode Scanner
+
+---
+
+### ManagementAgent
+
+Represents the Helix Edge Agent installed on a Device.
+
+Responsibilities:
+
+- Connectivity
+- Inventory reporting
+- Telemetry reporting
+- Deployment execution
+- Command execution
+
+---
+
+## Current MVP Constraint
+
+A Device must have exactly one ManagementAgent.
+
+Future versions may support multiple ManagementAgents.
 
 ---
 
 ## Responsibilities
 
-- Event publishing
-- Event routing
-- Event subscriptions
-- Event persistence
-- Event replay
-- Event auditing
-- Event history
-- Event traceability
+- Register locations
+- Register devices
+- Register agents
+- Maintain asset inventory
+- Track software versions
+- Maintain asset lifecycle
 
 ---
 
-## Produces
+## Events Produced
 
-```text
-EventStored
-EventPublished
-EventReplayed
-```
+LocationCreated
 
----
+LocationClosed
 
-## Consumes
+DeviceRegistered
 
-```text
-All platform events
-```
+DeviceRetired
 
----
+AgentRegistered
 
-## Owned Concepts
+AgentRetired
 
-```text
-Event
-EventStream
-EventSubscription
-EventAudit
-EventMetadata
-```
+AgentVersionReported
+
+AgentHeartbeatReceived
 
 ---
 
-# 2. Automation & Rules Engine
+## Events Consumed
 
-## Description
+DeploymentAssigned
 
-Automation & Rules Engine is responsible for evaluating operational conditions and executing automated actions.
+AgentUpdateSucceeded
 
-This domain transforms operational insights into platform reactions.
+AgentUpdateFailed
 
-It is one of the core differentiators of HelixOps.
+---
+
+# Monitoring
+
+## Purpose
+
+Transform operational signals into health information.
+
+Monitoring evaluates asset health based on telemetry and heartbeats.
+
+---
+
+## Responsibilities
+
+- Health calculation
+- Connectivity evaluation
+- Availability monitoring
+- Health projections
+
+---
+
+## Events Produced
+
+AgentHealthCalculated
+
+AgentRecovered
+
+---
+
+## Commands Consumed
+
+EvaluateAgentHealth
+
+---
+
+# Automation
+
+## Purpose
+
+Execute operational decisions automatically.
 
 ---
 
 ## Responsibilities
 
 - Rule evaluation
-- Automation workflows
-- Incident response orchestration
-- Automated remediation
-- Operational decision execution
-- Action triggering
+- Workflow execution
+- Operational automation
 
 ---
 
-## Produces
+## Events Produced
 
-```text
 RuleTriggered
-AutomationStarted
-AutomationCompleted
-AutomationFailed
-RollbackRequested
-DeploymentRequested
-AlertRequested
-DeviceMaintenanceRequested
-```
+
+AutomationExecuted
 
 ---
 
-## Consumes
+# Alerting
 
-```text
-DeviceHealthCalculated
-LocationHealthCalculated
-DeploymentFailed
-DeploymentSucceeded
-MetricThresholdExceeded
-QueueDepthExceeded
-```
+## Purpose
 
----
-
-## Owned Concepts
-
-```text
-Rule
-Automation
-AutomationExecution
-Condition
-Action
-Policy
-```
-
----
-
-## Example Scenarios
-
-### Device Offline
-
-```text
-DeviceMarkedOffline
-↓
-RuleTriggered
-↓
-AlertRequested
-```
-
-### Deployment Failure
-
-```text
-DeploymentFailed
-↓
-RuleTriggered
-↓
-RollbackRequested
-```
-
-### Version Drift
-
-```text
-DeviceVersionOutdated
-↓
-RuleTriggered
-↓
-DeploymentRequested
-```
-
----
-
-# 3. Asset Management
-
-## Description
-
-Responsible for managing operational assets distributed across the organization.
-
-Assets provide operational context and act as producers of platform events.
+Generate and manage operational alerts.
 
 ---
 
 ## Responsibilities
 
-### Location Management
-
-- Stores
-- Warehouses
-- Offices
-- Branches
-- Edge Sites
-
-### Device Management
-
-- POS
-- Kiosks
-- Printers
-- Scanners
-- Tablets
-- Edge Nodes
-
-### Device Health Registration
-
-- Heartbeats
-- Connectivity
-- Version reporting
-
----
-
-## Produces
-
-```text
-LocationCreated
-LocationActivated
-LocationClosed
-
-DeviceRegistered
-DeviceOnline
-DeviceOffline
-HeartbeatReceived
-DeviceDecommissioned
-
-DeviceVersionReported
-```
-
----
-
-## Consumes
-
-```text
-DeploymentAssigned
-DeviceMaintenanceRequested
-```
-
----
-
-## Owned Concepts
-
-```text
-Location
-Device
-Heartbeat
-DeviceVersion
-```
-
----
-
-# 4. Monitoring
-
-## Description
-
-Monitoring transforms operational events into telemetry and health information.
-
-Monitoring is responsible for understanding the health of the platform and its managed assets.
-
----
-
-## Responsibilities
-
-- Metrics collection
-- Availability tracking
-- Health evaluation
-- Telemetry generation
-- Performance monitoring
-- Device monitoring
-
----
-
-## Produces
-
-```text
-MetricRecorded
-HealthEvaluated
-
-DeviceHealthCalculated
-LocationHealthCalculated
-
-MetricThresholdExceeded
-
-QueueDepthExceeded
-
-ServiceHealthCalculated
-```
-
----
-
-## Consumes
-
-```text
-HeartbeatReceived
-DeviceOnline
-DeviceOffline
-
-DeploymentStarted
-DeploymentSucceeded
-DeploymentFailed
-```
-
----
-
-## Owned Concepts
-
-```text
-Metric
-HealthStatus
-AvailabilityIndicator
-Telemetry
-```
-
----
-
-# 5. Alerting
-
-## Description
-
-Responsible for communicating operational incidents to platform operators.
-
-Alerting does not decide when an alert should exist.
-
-It communicates decisions produced by the Automation & Rules Engine.
-
----
-
-## Responsibilities
-
-- Alert lifecycle management
-- Notification delivery
-- Escalation flows
+- Alert lifecycle
 - Incident communication
+- Alert acknowledgment
 
 ---
 
-## Produces
+## Events Produced
 
-```text
 AlertGenerated
+
 AlertAcknowledged
+
 AlertResolved
-NotificationSent
-```
 
 ---
 
-## Consumes
+# Deployment Management
 
-```text
-AlertRequested
-```
+## Purpose
 
----
-
-## Owned Concepts
-
-```text
-Alert
-Incident
-Notification
-Escalation
-```
-
----
-
-# 6. Deployment Management
-
-## Description
-
-Responsible for software distribution and deployment orchestration across distributed assets.
+Manage ManagementAgent software updates.
 
 ---
 
 ## Responsibilities
 
+- Version rollout
 - Deployment orchestration
-- Rollout management
-- Rollback management
-- Version tracking
-- Deployment targeting
+- Rollback execution
 
 ---
 
-## Produces
+## Events Produced
 
-```text
-DeploymentStarted
-DeploymentAssigned
-DeploymentSucceeded
-DeploymentFailed
+AgentUpdateStarted
+
+AgentUpdateSucceeded
+
+AgentUpdateFailed
 
 RollbackStarted
-RollbackCompleted
-```
+
+RollbackSucceeded
 
 ---
 
-## Consumes
+# Identity & Access
 
-```text
-DeploymentRequested
-RollbackRequested
+## Purpose
 
-DeviceRegistered
-DeviceOnline
-```
-
----
-
-## Owned Concepts
-
-```text
-Deployment
-Release
-Version
-DeploymentTarget
-```
-
----
-
-# 7. Identity & Access
-
-## Description
-
-Provides authentication and authorization services across the platform.
+Authentication and authorization.
 
 ---
 
 ## Responsibilities
 
-- User management
 - Authentication
 - Authorization
-- Access control
-- Role management
+- RBAC
 
 ---
 
-## Produces
+# Event Platform
 
-```text
-UserCreated
-UserActivated
-RoleAssigned
-PermissionGranted
-```
+## Purpose
+
+Provide asynchronous communication between modules.
 
 ---
 
-## Consumes
+## Responsibilities
 
-None
-
-````
-
----
-
-## Owned Concepts
-
-```text
-User
-Role
-Permission
-AccessPolicy
-````
+- Event publishing
+- Event subscriptions
+- Correlation tracking
+- Event routing
 
 ---
 
-# Architectural Principles
+# Core Domain
 
-## Event-First
+The current Core Domain of HelixOps is:
 
-Every relevant operational activity must generate an event.
+Automation
 
----
+Supported by:
 
-## Automation-First
+Monitoring
 
-The platform should automate operational responses whenever possible.
+Asset Management
 
----
-
-## Observability-First
-
-Every operational action should generate telemetry.
-
----
-
-## Cloud-Native
-
-All modules should remain deployable in local and cloud environments.
-
----
-
-## Loose Coupling
-
-Modules should communicate through events whenever possible.
-
----
-
-## Auditability
-
-Every significant operational action must be traceable through event history.
-
----
-
-# Product Vision Alignment
-
-HelixOps is not merely a monitoring platform.
-
-HelixOps is an Event-Driven Operations Platform capable of:
-
-1. Observing distributed systems.
-2. Understanding operational conditions.
-3. Executing automated actions.
-4. Assisting operators in maintaining system health.
-
-Core operational flow:
-
-```
-Observe
-↓
-Understand
-↓
-Decide
-↓
-Act
-↓
-Audit
-
-```
+Deployment Management

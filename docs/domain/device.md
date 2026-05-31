@@ -1,115 +1,135 @@
-# Device Domain Model
+# HelixOps - Device Domain Model
 
 ## Purpose
 
-Represents an operational asset connected to HelixOps.
+Represents a physical or logical operational asset where software is executed via a ManagementAgent.
+
+Devices are infrastructure entities that host operational capabilities.
 
 Examples:
 
-- POS
-- Self Checkout
-- Kiosk
-- Receipt Printer
-- Barcode Scanner
+- POS Terminal
+- Self Checkout Kiosk
+- Printer
+- Scanner
+- Edge Server
 
 ---
 
-## Aggregate Root
+# Aggregate Root
 
 Device
 
 ---
 
-## Identity
+# Identity
 
 DeviceId
 
 ---
 
-## Attributes
+# Relationships
+
+```mermaid
+flowchart TB
+
+Location
+Device
+ManagementAgent
+
+Location --> Device
+Device --> ManagementAgent
+```
+
+---
+
+# Attributes
 
 DeviceId
-
 LocationId
-
 SerialNumber
-
 DeviceType
-
-CurrentVersion
-
+Manufacturer
+Model
 Status
-
-LastHeartbeatAt
-
 CreatedAt
-
 UpdatedAt
 
 ---
 
-## Device Types
+# Device Types
 
 POS
-
-Kiosk
-
-Printer
-
-Scanner
-
-SelfCheckout
+KIOSK
+PRINTER
+SCANNER
+EDGE_SERVER
+CUSTOM
 
 ---
 
-## Device Status
+# Status
 
-Provisioning
-
-Online
-
-Offline
-
+Active
+Inactive
 Maintenance
-
 Retired
 
 ---
 
-## Invariants
+# MVP Constraint
 
-A Device must belong to a Location.
+A Device MUST have exactly one ManagementAgent.
 
-A Device must have a unique SerialNumber.
-
-A Retired Device cannot send heartbeats.
+This constraint simplifies deployment, monitoring, and lifecycle management.
 
 ---
 
-## Commands
+# Invariants
+
+- A Device must belong to a Location
+- A Device must have a unique SerialNumber
+- A Retired Device cannot register a new ManagementAgent
+- A Device cannot exist without an associated ManagementAgent (MVP rule)
+
+---
+
+# Responsibilities
+
+- Represent physical/edge infrastructure
+- Host ManagementAgent
+- Provide execution environment context
+- Support operational grouping and filtering
+
+---
+
+# Non Responsibilities
+
+- Health evaluation (Monitoring module)
+- Deployment logic
+- Automation logic
+- Alerting logic
+
+---
+
+# Commands
 
 RegisterDevice
-
-ActivateDevice
-
-DeactivateDevice
-
-MarkDeviceOffline
-
-ReportDeviceVersion
-
-SendHeartbeat
+UpdateDevice
+RetireDevice
 
 ---
 
-## Events
+# Events
 
 DeviceRegistered
+DeviceUpdated
+DeviceRetired
 
-DeviceActivated
+---
 
-DeviceOffline
+# Notes
 
-HeartbeatReceived
+Device is intentionally lightweight.
 
-DeviceVersionReported
+All operational intelligence is delegated to ManagementAgent and Monitoring.

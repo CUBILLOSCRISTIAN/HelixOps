@@ -1,10 +1,15 @@
-# Management Agent Lifecycle
+# HelixOps - Management Agent Lifecycle
 
 ## Purpose
 
-Defines the valid operational states and transitions of a ManagementAgent.
+Defines the valid lifecycle states and transitions of a ManagementAgent.
 
-The lifecycle governs monitoring, automation, alerting and deployment behaviors.
+The lifecycle is used by:
+
+- Asset Management
+- Monitoring
+- Deployment Management
+- Automation
 
 ---
 
@@ -17,14 +22,6 @@ stateDiagram-v2
 
 Provisioning --> Running
 
-Running --> Degraded
-
-Degraded --> Running
-
-Running --> Offline
-
-Offline --> Running
-
 Running --> Updating
 
 Updating --> Running
@@ -35,14 +32,24 @@ Failed --> Updating
 
 Running --> Retired
 
-Offline --> Retired
-
 Failed --> Retired
 ```
 
 ---
 
-# States
+# Important Design Decision
+
+Offline and Degraded are NOT aggregate states.
+
+They are Monitoring evaluations.
+
+The aggregate only stores operational lifecycle state.
+
+Monitoring determines health projections separately.
+
+---
+
+# Aggregate States
 
 ## Provisioning
 
@@ -50,15 +57,13 @@ Description:
 
 Agent has been registered but is not yet operational.
 
-Characteristics:
-
-- Newly created
-- Not receiving commands
-- Not participating in automation
-
 Allowed Commands:
 
-- ActivateAgent
+- ReportAgentVersion
+
+Transitions:
+
+Provisioning -> Running
 
 Generated Events:
 
@@ -72,66 +77,17 @@ Description:
 
 Normal operational state.
 
-Characteristics:
-
-- Receives heartbeats
-- Accepts deployments
-- Participates in monitoring
-
 Allowed Commands:
 
-- SendHeartbeat
-- StartUpdate
+- SendAgentHeartbeat
+- StartAgentUpdate
 - RetireAgent
 
-Generated Events:
+Transitions:
 
-- AgentHeartbeatReceived
+Running -> Updating
 
----
-
-## Degraded
-
-Description:
-
-Agent is operational but experiencing issues.
-
-Examples:
-
-- High latency
-- Resource pressure
-- Partial failures
-
-Allowed Commands:
-
-- SendHeartbeat
-- StartUpdate
-- RetireAgent
-
-Generated Events:
-
-- AgentDegraded
-
----
-
-## Offline
-
-Description:
-
-No heartbeat received within expected interval.
-
-Characteristics:
-
-- Considered unavailable
-- Generates operational alerts
-
-Allowed Commands:
-
-- RetireAgent
-
-Generated Events:
-
-- AgentOffline
+Running -> Retired
 
 ---
 
@@ -139,17 +95,18 @@ Generated Events:
 
 Description:
 
-Deployment operation in progress.
-
-Characteristics:
-
-- Version transition occurring
-- Monitoring remains active
+Software update is currently executing.
 
 Allowed Commands:
 
-- CompleteUpdate
-- FailUpdate
+- CompleteAgentUpdate
+- FailAgentUpdate
+
+Transitions:
+
+Updating -> Running
+
+Updating -> Failed
 
 Generated Events:
 
@@ -161,16 +118,19 @@ Generated Events:
 
 Description:
 
-Agent update failed.
-
-Characteristics:
-
-- Requires retry or rollback
+Update process failed.
 
 Allowed Commands:
 
-- RetryUpdate
+- StartAgentUpdate
+- ExecuteRollback
 - RetireAgent
+
+Transitions:
+
+Failed -> Updating
+
+Failed -> Retired
 
 Generated Events:
 
@@ -182,16 +142,76 @@ Generated Events:
 
 Description:
 
-Agent permanently removed from operation.
+Terminal state.
 
-Characteristics:
-
-- Terminal state
+No operational activity is allowed.
 
 Allowed Commands:
+
+None
+
+Transitions:
 
 None
 
 Generated Events:
 
 - AgentRetired
+
+---
+
+# Health Projection
+
+Health is maintained by Monitoring.
+
+Possible health values:
+
+Healthy
+
+Degraded
+
+Offline
+
+---
+
+# Example
+
+```text
+AgentHeartbeatReceived
+        ↓
+EvaluateAgentHealth
+        ↓
+AgentHealthCalculated
+        ↓
+Health = Healthy
+```
+
+---
+
+# Architectural Rule
+
+Lifecycle State:
+
+Managed by Asset Management.
+
+Health State:
+
+Managed by Monitoring.
+
+These concepts must never be mixed.
+
+---
+
+# Future Evolution
+
+Potential future lifecycle states:
+
+Paused
+
+Maintenance
+
+RollbackInProgress
+
+PluginInstallation
+
+ContainerDeployment

@@ -1,36 +1,38 @@
-# Location Domain Model
+# HelixOps - Location Domain Model
 
 ## Purpose
 
 Represents a physical operational site managed by HelixOps.
 
+Locations are the top-level organizational unit where Devices and Management Agents operate.
+
 Examples:
 
 - Retail Store
-- Restaurant
-- Pharmacy
 - Warehouse
-- Airport Kiosk Area
+- Airport Kiosk Zone
+- Restaurant Branch
 
 ---
 
-## Aggregate Root
+# Aggregate Root
 
 Location
 
 ---
 
-## Identity
+# Identity
 
 LocationId
 
 ---
 
-## Attributes
+# Attributes
 
 LocationId
 Code
 Name
+Description
 Country
 Region
 City
@@ -41,35 +43,67 @@ UpdatedAt
 
 ---
 
-## Status
+# Status
 
 Active
 Inactive
-Maintenance
 Closed
 
 ---
 
-## Invariants
+# Invariants
 
-A Location must have a unique Code.
-
-A Closed Location cannot receive new Devices.
-
-A Location must have a Name.
-
----
-
-## Events
-
-LocationCreated
-LocationActivated
-LocationClosed
+- A Location must have a unique Code
+- A Location must have a Name
+- A Closed Location cannot register new Devices
+- A Closed Location cannot register new ManagementAgents indirectly
 
 ---
 
-## Commands
+# Relationships
+
+```mermaid
+flowchart TB
+
+Location
+Device
+ManagementAgent
+
+Location --> Device
+Device --> ManagementAgent
+```
+
+---
+
+# Responsibilities
+
+- Manage operational sites
+- Group Devices logically
+- Provide organizational boundaries for operations
+- Support filtering and aggregation for Monitoring and Reporting
+
+---
+
+# Commands
 
 CreateLocation
-ActivateLocation
+UpdateLocation
 CloseLocation
+ActivateLocation
+
+---
+
+# Events
+
+LocationCreated
+LocationUpdated
+LocationClosed
+LocationActivated
+
+---
+
+# Notes
+
+Location does NOT manage operational health.
+
+Health is computed by Monitoring module and is not part of this aggregate.

@@ -2,388 +2,308 @@
 
 ## Purpose
 
-This document defines the policies that coordinate behavior across bounded contexts in HelixOps.
+Defines the policies that coordinate workflows across modules.
 
-Policies react to events and issue commands that continue operational workflows.
+Policies react to Domain Events and may issue Commands.
 
-Policies do not own business data.
+Policies do not contain domain state.
 
-Policies do not persist state.
+Policies do not persist data.
 
-Policies coordinate actions.
-
----
-
-# Policy Principles
-
-## Event Driven
-
-Policies are always triggered by events.
+Policies are responsible for orchestration.
 
 ---
 
-## Stateless
+# Policy Flow
 
-Policies should not maintain internal state.
+```mermaid
+flowchart LR
 
-They react to events and issue commands.
+Command
+
+Aggregate
+
+Event
+
+Policy
+
+Command2
+
+Command --> Aggregate
+
+Aggregate --> Event
+
+Event --> Policy
+
+Policy --> Command2
+```
 
 ---
 
-## Single Responsibility
+# Asset Monitoring Policies
 
-Each policy should coordinate one operational concern.
-
----
-
-## Domain Oriented
-
-Policies must reflect business behavior rather than technical implementation.
-
----
-
-# Asset Policies
-
-## Evaluate Device Health Policy
+## Policy: Agent Heartbeat Evaluation
 
 ### Trigger
 
-```text
-HeartbeatReceived
-```
+AgentHeartbeatReceived
 
 ### Action
 
-```text
-CalculateDeviceHealth
-```
+Issue:
 
-### Flow
+EvaluateAgentHealth
 
-```text
-HeartbeatReceived
-↓
-EvaluateDeviceHealthPolicy
-↓
-CalculateDeviceHealth
-```
+### Purpose
+
+Ensure every heartbeat updates the operational health projection.
 
 ---
 
-## Evaluate Location Health Policy
+## Policy: Agent Recovery Detection
 
 ### Trigger
 
-```text
-DeviceOnline
-DeviceOffline
-```
+AgentHealthCalculated
+
+Condition:
+
+CurrentHealth = Healthy
+
+PreviousHealth != Healthy
 
 ### Action
 
-```text
-CalculateLocationHealth
-```
+Issue:
 
-### Flow
+GenerateRecoveryWorkflow
 
-```text
-DeviceOffline
-↓
-EvaluateLocationHealthPolicy
-↓
-CalculateLocationHealth
-```
+### Expected Outcome
 
----
-
-# Monitoring Policies
-
-## Device Offline Detection Policy
-
-### Trigger
-
-```text
-DeviceHealthCalculated
-```
-
-### Condition
-
-```text
-HealthStatus = Critical
-```
-
-### Action
-
-```text
-MarkDeviceOffline
-```
-
-### Flow
-
-```text
-DeviceHealthCalculated
-↓
-DeviceOfflineDetectionPolicy
-↓
-MarkDeviceOffline
-```
-
----
-
-## Threshold Monitoring Policy
-
-### Trigger
-
-```text
-MetricRecorded
-```
-
-### Condition
-
-```text
-Metric exceeds threshold
-```
-
-### Action
-
-```text
-EvaluateRule
-```
-
----
-
-# Automation Policies
-
-## Alert Generation Policy
-
-### Trigger
-
-```text
-RuleTriggered
-```
-
-### Action
-
-```text
-RequestAlert
-```
-
-### Flow
-
-```text
-RuleTriggered
-↓
-AlertGenerationPolicy
-↓
-RequestAlert
-```
-
----
-
-## Deployment Recovery Policy
-
-### Trigger
-
-```text
-DeploymentFailed
-```
-
-### Action
-
-```text
-RequestRollback
-```
-
-### Flow
-
-```text
-DeploymentFailed
-↓
-DeploymentRecoveryPolicy
-↓
-RequestRollback
-```
-
----
-
-## Version Drift Policy
-
-### Trigger
-
-```text
-DeviceVersionOutdated
-```
-
-### Action
-
-```text
-RequestDeployment
-```
-
-### Flow
-
-```text
-DeviceVersionOutdated
-↓
-VersionDriftPolicy
-↓
-RequestDeployment
-```
-
----
-
-# Deployment Policies
-
-## Deployment Completion Policy
-
-### Trigger
-
-```text
-DeploymentSucceeded
-DeploymentFailed
-```
-
-### Action
-
-```text
-EvaluateHealth
-```
-
-### Flow
-
-```text
-DeploymentSucceeded
-↓
-DeploymentCompletionPolicy
-↓
-EvaluateHealth
-```
+AgentRecovered
 
 ---
 
 # Alerting Policies
 
-## Notification Policy
+## Policy: Offline Agent Alert
 
 ### Trigger
 
-```text
-AlertGenerated
-```
+AgentHealthCalculated
+
+Condition:
+
+Health = Offline
 
 ### Action
 
-```text
-SendNotification
-```
-
-### Flow
-
-```text
-AlertGenerated
-↓
-NotificationPolicy
-↓
-SendNotification
-```
-
----
-
-# Policy Ownership
-
-| Policy                       | Owning Context            |
-| ---------------------------- | ------------------------- |
-| EvaluateDeviceHealthPolicy   | Monitoring                |
-| EvaluateLocationHealthPolicy | Monitoring                |
-| DeviceOfflineDetectionPolicy | Monitoring                |
-| ThresholdMonitoringPolicy    | Monitoring                |
-| AlertGenerationPolicy        | Automation & Rules Engine |
-| DeploymentRecoveryPolicy     | Automation & Rules Engine |
-| VersionDriftPolicy           | Automation & Rules Engine |
-| DeploymentCompletionPolicy   | Deployment Management     |
-| NotificationPolicy           | Alerting                  |
-
----
-
-# Core Operational Chain
-
-The primary operational chain of HelixOps.
-
-```text
-SendHeartbeat
-↓
-HeartbeatReceived
-
-EvaluateDeviceHealthPolicy
-↓
-CalculateDeviceHealth
-
-DeviceHealthCalculated
-
-DeviceOfflineDetectionPolicy
-↓
-EvaluateRule
-
-RuleTriggered
-
-AlertGenerationPolicy
-↓
-RequestAlert
-
-AlertRequested
+Issue:
 
 GenerateAlert
-↓
-AlertGenerated
 
-NotificationPolicy
-↓
-SendNotification
+Severity:
 
-NotificationSent
-```
+Critical
 
----
+Category:
 
-# Policy Design Guidelines
-
-## Policies React To Events
-
-Policies must never be triggered directly by users.
+Connectivity
 
 ---
 
-## Policies Emit Commands
+## Policy: Degraded Agent Alert
 
-Policies should not directly modify state.
+### Trigger
+
+AgentHealthCalculated
+
+Condition:
+
+Health = Degraded
+
+### Action
+
+Issue:
+
+GenerateAlert
+
+Severity:
+
+Warning
+
+Category:
+
+Performance
 
 ---
 
-## Policies Should Remain Stateless
+## Policy: Alert Resolution
 
-State belongs to aggregates and bounded contexts.
+### Trigger
+
+AgentRecovered
+
+### Action
+
+Issue:
+
+ResolveAlert
+
+Category:
+
+Connectivity
 
 ---
 
-## Policies Should Be Observable
+# Automation Policies
 
-Every policy execution should generate telemetry.
+## Policy: Offline Agent Automation
+
+### Trigger
+
+AgentHealthCalculated
+
+Condition:
+
+Health = Offline
+
+### Action
+
+Issue:
+
+EvaluateRule
+
+### Purpose
+
+Allow automation workflows to react to outages.
+
+---
+
+## Policy: Degraded Agent Automation
+
+### Trigger
+
+AgentHealthCalculated
+
+Condition:
+
+Health = Degraded
+
+### Action
+
+Issue:
+
+EvaluateRule
+
+### Purpose
+
+Allow proactive operational responses.
+
+---
+
+# Deployment Policies
+
+## Policy: Deployment Failure Rollback
+
+### Trigger
+
+AgentUpdateFailed
+
+### Action
+
+Issue:
+
+ExecuteRollback
+
+### Purpose
+
+Reduce downtime after failed deployments.
+
+---
+
+## Policy: Deployment Success Verification
+
+### Trigger
+
+AgentUpdateSucceeded
+
+### Action
+
+Issue:
+
+EvaluateAgentHealth
+
+### Purpose
+
+Verify agent health after update.
+
+---
+
+# Asset Lifecycle Policies
+
+## Policy: Agent Registration Validation
+
+### Trigger
+
+AgentRegistered
+
+### Action
+
+Issue:
+
+EvaluateAgentHealth
+
+### Purpose
+
+Initialize monitoring for newly registered agents.
+
+---
+
+## Policy: Agent Retirement Cleanup
+
+### Trigger
+
+AgentRetired
+
+### Action
+
+Issue:
+
+ResolveAlert
+
+### Purpose
+
+Close operational incidents associated with retired agents.
 
 ---
 
 # Future Policies
 
-Reserved for future platform evolution.
+Future versions may include:
 
-```text
-PredictiveMaintenancePolicy
+- Self-Healing Policies
+- Predictive Maintenance Policies
+- AI-Assisted Automation Policies
+- Cost Optimization Policies
 
-AutoScalingPolicy
+---
 
-IncidentEscalationPolicy
+# Architectural Rules
 
-SelfHealingPolicy
+Policies may:
 
-CapacityOptimizationPolicy
+- Consume Events
+- Produce Commands
+
+Policies may not:
+
+- Modify Aggregate State
+- Access Databases Directly
+- Publish Domain Events Directly
+
+Policies must remain deterministic whenever possible.
+
+```
+
 ```
