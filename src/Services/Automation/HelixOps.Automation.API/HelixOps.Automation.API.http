@@ -1,0 +1,6 @@
+@HelixOps.Automation.API_HostAddress = http://localhost:5198
+
+GET {{HelixOps.Automation.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
