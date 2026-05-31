@@ -7,7 +7,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.1" />
+    <PackageReference Include="MediatR" Version="14.1.0" />
+    <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.1">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../HelixOps.AssetManagement.Application/HelixOps.AssetManagement.Application.csproj" />
+    <ProjectReference Include="../HelixOps.AssetManagement.Domain/HelixOps.AssetManagement.Domain.csproj" />
+    <ProjectReference Include="../HelixOps.AssetManagement.Infrastructure/HelixOps.AssetManagement.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
